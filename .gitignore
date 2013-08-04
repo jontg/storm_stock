@@ -1,0 +1,6 @@
+ivy/
+target/
+.ruby-version
+Gemfile.lock
+.idea/
+news_aggregator.iml
