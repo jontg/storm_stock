@@ -34,8 +34,7 @@ module Abstract
       @threads << Thread.new do
         Thread.current.abort_on_exception = true
         @patterns.each do |pattern|
-          redis_client = Redis.new(:host => @host, :port => @port)
-          redis_client.psubscribe(pattern) do |on|
+          Redis.new(:host => @host, :port => @port).psubscribe(pattern) do |on|
             on.pmessage do |pat, ch, message|
               @q << {:pattern => pat, :channel => ch, :message => message}
             end
@@ -46,8 +45,7 @@ module Abstract
       @channels.each do |channel|
         @threads << Thread.new do
           Thread.current.abort_on_exception = true
-          redis_client = Redis.new(:host => @host, :port => @port)
-          redis_client.subscribe(channel) do |on|
+          Redis.new(:host => @host, :port => @port).subscribe(channel) do |on|
             on.message do |ch, message|
               @q << {:channel => ch, :message => message}
             end
