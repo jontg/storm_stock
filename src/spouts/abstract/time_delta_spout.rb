@@ -39,10 +39,6 @@ module Abstract
       end
     end
 
-    on_ack do |msg_id|
-      log.info("Something #{msg_id}")
-    end
-
     on_close do
       @should_continue = false
       @thread.join

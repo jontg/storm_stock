@@ -5,7 +5,7 @@ require 'spouts/abstract/time_delta_spout'
 
 module NewsAggregator
   class CustomRedisSpout < Abstract::RedisSpout
-    output_fields :channel
+    output_fields :id, :channel, :message
 
     def initialize
       config = Abstract::RedisConfig.new

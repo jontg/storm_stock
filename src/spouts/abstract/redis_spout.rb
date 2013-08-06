@@ -15,7 +15,9 @@ module Abstract
   end
 
   class RedisSpout < RedStorm::DSL::Spout
-    on_send { @q.pop if @q.size > 0 }
+    on_send :reliable => true, :emit => true do
+      @q.pop if @q.size > 0
+    end
 
     def initialize(redis_config)
       super()
@@ -23,6 +25,8 @@ module Abstract
       @port = redis_config.port
       @patterns = redis_config.patterns
       @channels = redis_config.channels
+
+      @i = 0
 
       @threads = []
     end
@@ -36,7 +40,8 @@ module Abstract
         @patterns.each do |pattern|
           Redis.new(:host => @host, :port => @port).psubscribe(pattern) do |on|
             on.pmessage do |pat, ch, message|
-              @q << {:pattern => pat, :channel => ch, :message => message}
+              @q << [@i, ch, {:pattern => pat, :message => message}]
+              @i += 1
             end
           end
         end
@@ -47,7 +52,8 @@ module Abstract
           Thread.current.abort_on_exception = true
           Redis.new(:host => @host, :port => @port).subscribe(channel) do |on|
             on.message do |ch, message|
-              @q << {:channel => ch, :message => message}
+              @q << [@i, ch, {:message => message}]
+              @i += 1
             end
           end
         end
