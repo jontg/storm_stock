@@ -1,5 +1,6 @@
 ivy/
 target/
+examples/
 .ruby-version
 Gemfile.lock
 .idea/
