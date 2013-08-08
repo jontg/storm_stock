@@ -12,11 +12,10 @@ module Abstract
   end
 
   class TimeDeltaSpout < RedStorm::DSL::Spout
-    on_send { @q.pop if @q.size > 0 }
-
     def initialize(config)
       @delta = config.delta
       @thread = nil
+      @i = 0
     end
 
     on_init do
@@ -25,16 +24,17 @@ module Abstract
       last_run_time = Date.new
       next_run_time = last_run_time
 
-      log.info("Initializing Time Bolt at #{last_run_time.inspect} with delta #{@delta}")
+      log.info("Initializing Time Bolt at #{last_run_time.inspect.to_s} with delta #{@delta.to_s}")
 
       @thread = Thread.new do
         Thread.current.abort_on_exception = true
         while @should_continue do
           next_run_time = next_run_time + @delta
 
-          @q << {:now => last_run_time.to_date}
+          @q << [@i.to_s, last_run_time.to_date]
           sleep(Date::Delta.diff(next_run_time, last_run_time).in_secs)
           last_run_time = next_run_time
+          @i += 1
         end
       end
     end

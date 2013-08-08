@@ -5,13 +5,17 @@ require 'spouts/abstract/time_delta_spout'
 
 module NewsAggregator
   class CustomRedisSpout < Abstract::RedisSpout
-    output_fields :id, :channel, :message
+    output_fields :channel, :message
 
     def initialize
       config = Abstract::RedisConfig.new
-      config.channels = ["TestChannelOne", "TestChannelTwo"]
-      config.patterns = ["Pattern*"]
+      config.channels = %w{TestChannelOne TestChannelTwo}
+      config.patterns = %w{Pattern*}
       super(config)
+    end
+
+    on_send(:reliable => true, :ack => true) do
+      @q.pop if @q.size > 0
     end
 
     on_ack do |msg_id|
@@ -27,6 +31,10 @@ module NewsAggregator
       super(config)
     end
 
+    on_send(:reliable => true, :ack => true) do
+      @q.pop if @q.size > 0
+    end
+
     on_ack do |msg_id|
       log.info("Ack'd message #{msg_id}")
     end
@@ -35,13 +43,13 @@ module NewsAggregator
   class ExperimentalTopology < RedStorm::DSL::Topology
     spout CustomRedisSpout
 
-    bolt EchoBolt, :id => "RedisEchoBolt", :ack => true, :parallelism => 4 do
-      source CustomRedisSpout, :fields => ["channel"]
+    bolt EchoBolt, :id => 'RedisEchoBolt', :ack => true, :parallelism => 4 do
+      source CustomRedisSpout, :fields => %w{channel}
     end
 
     spout CustomTimeSpout
 
-    bolt EchoBolt, :id => "TimeEchoBolt", :ack => true, :parallelism => 8 do
+    bolt EchoBolt, :id => 'TimeEchoBolt', :ack => true, :parallelism => 8 do
       source CustomTimeSpout, :shuffle
     end
 
