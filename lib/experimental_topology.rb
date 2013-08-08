@@ -1,10 +1,10 @@
 require 'red_storm'
 require 'bolts/echo_bolt'
-require 'spouts/abstract/redis_spout'
+require 'spouts/abstract/redis_pub_sub_spout'
 require 'spouts/abstract/time_delta_spout'
 
 module NewsAggregator
-  class CustomRedisSpout < Abstract::RedisSpout
+  class CustomRedisPubSubSpout < Abstract::RedisPubSubSpout
     output_fields :channel, :message
 
     def initialize
@@ -27,7 +27,7 @@ module NewsAggregator
     output_fields :tick
 
     def initialize
-      config = Abstract::TimeConfig.new(Date::Delta.new(Date::Delta.dhms_to_delta(0, 0, 0, 0, 0, 10, 0)))
+      config = Abstract::TimeConfig.new(10)
       super(config)
     end
 
@@ -41,10 +41,10 @@ module NewsAggregator
   end
 
   class ExperimentalTopology < RedStorm::DSL::Topology
-    spout CustomRedisSpout
+    spout CustomRedisPubSubSpout
 
     bolt EchoBolt, :id => 'RedisEchoBolt', :ack => true, :parallelism => 4 do
-      source CustomRedisSpout, :fields => %w{channel}
+      source CustomRedisPubSubSpout, :fields => %w{channel}
     end
 
     spout CustomTimeSpout

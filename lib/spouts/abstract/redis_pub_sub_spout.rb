@@ -14,7 +14,7 @@ module Abstract
     end
   end
 
-  class RedisSpout < RedStorm::DSL::Spout
+  class RedisPubSubSpout < RedStorm::DSL::Spout
     def initialize(redis_config)
       super()
       @host = redis_config.host
