@@ -58,6 +58,16 @@ module RedisSpout
       log.debug("Redis ack received and dismissed #{msg_id}")
     end
 
+    on_fail do |msg_id|
+      if data = @redis.hget(CONFIG[:processing], msg_id.to_s)
+        log.warn("Failed to process #{msg_id}: #{data}")
+        @redis.rpush(CONFIG[:queue], data)
+      end
+
+      @redis.hdel(CONFIG[:processing], msg_id.to_s)
+      @outstanding -= 1
+    end
+
     on_close do
       @should_continue = false
       @thread.join
