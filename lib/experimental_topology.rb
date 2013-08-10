@@ -1,6 +1,7 @@
 require 'red_storm'
 require 'bolts/echo_bolt'
 require 'spouts/redis_spout'
+require 'spouts/redis_pub_sub_spout'
 require 'spouts/abstract/time_delta_spout'
 
 module NewsAggregator
@@ -16,10 +17,16 @@ module NewsAggregator
   end
 
   class ExperimentalTopology < RedStorm::DSL::Topology
-    spout RedisSpout::Spout
+    spout RedisSpout::Spout, :id => 'Queue'
 
     bolt EchoBolt, :id => 'RedisEchoBolt', :parallelism => 40 do
-      source RedisSpout::Spout, :shuffle
+      source 'Queue', :shuffle
+    end
+
+    spout RedisPubSubSpout::Spout, :id => 'PubSub'
+
+    bolt EchoBolt, :id => 'RedisPubSubEchoBolt', :parallelism => 10 do
+      source 'PubSub', :shuffle
     end
 
     #spout CustomTimeSpout

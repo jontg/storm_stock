@@ -2,7 +2,7 @@ module RedisPubSubSpout
   CONFIG = {
       :host => 'localhost',
       :port => 6379,
-      :patterns => [],
-      :channels => [],
+      :patterns => ['PatternTest*'],
+      :channels => ['Channel1', 'Channel2'],
   }
 end
