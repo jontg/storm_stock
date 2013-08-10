@@ -1,26 +1,18 @@
 require 'red_storm'
 require 'redis'
 require 'thread'
+require 'config/spouts/redis_pub_sub_spout'
 
-module Abstract
-  class RedisConfig
-    attr_accessor :host, :port, :patterns, :channels
+module RedisPubSubSpout
+  class Spout < RedStorm::DSL::Spout
+    output_fields :tuple
+    on_send(:reliable => true, :ack => true) { @q.pop unless @q.empty? }
 
-    def initialize(host = 'localhost', port = 6379, patterns = [], channels = [])
-      @host = host
-      @port = port
-      @patterns = patterns
-      @channels = channels
-    end
-  end
-
-  class RedisPubSubSpout < RedStorm::DSL::Spout
-    def initialize(redis_config)
-      super()
-      @host = redis_config.host
-      @port = redis_config.port
-      @patterns = redis_config.patterns
-      @channels = redis_config.channels
+    def initialize()
+      @host = CONFIG[:host]
+      @port = CONFIG[:port]
+      @patterns = CONFIG[:patterns]
+      @channels = CONFIG[:channels]
 
       @i = 0
       @threads = []
