@@ -1,71 +1,66 @@
 require 'red_storm'
 require 'redis'
+require 'set'
 require 'thread'
 require 'config/spouts/redis_spout'
 
 module RedisSpout
   class Spout < RedStorm::DSL::Spout
     output_fields :tuple
-
-    on_send :reliable => true, :ack => true do
-      if @q.size > 0
-        @outstanding += 1
-        @q.pop
-      else
-        nil
-      end
-    end
+    on_send(:reliable => true, :ack => true) { @q.pop unless @q.empty? }
 
     on_init do
       @q = Queue.new
+      @keys = Set.new(CONFIG[:max_pending].times)
       @should_continue = true
-      @outstanding = 0
-      @i = 0
 
-      log.info("Attaching to #{CONFIG[:host]}:#{CONFIG[:port]} with #{CONFIG[:queue]} appending to #{CONFIG[:processing]}")
+      log.info("Attaching to #{CONFIG[:host]}:#{CONFIG[:port]} with #{CONFIG[:queue]} failing to #{CONFIG[:failed]}")
       @redis = Redis.new(:host => CONFIG[:host], :port => CONFIG[:port])
 
-      @redis.hgetall(CONFIG[:processing]).each_pair do |key, tuple|
-        @redis.rpush(CONFIG[:queue], tuple)
+      @redis.hgetall(CONFIG[:processing]).each_pair do |key, val|
         @redis.hdel(CONFIG[:processing], key)
-        log.info("Rewinding #{key} -> #{tuple}")
+        @redis.rpush(CONFIG[:queue], val)
       end
 
       @thread = Thread.new do
         Thread.current.abort_on_exception = true
 
         while @should_continue do
-          if data = @redis.brpop(CONFIG[:queue], CONFIG[:processing], :timeout => 10)
-            if @redis.hsetnx(CONFIG[:processing], @i.to_s, data[1])
-              @q << [@i, data[1]]
-              @i = (@i + 1) % CONFIG[:max_pending]
-            else
-              log.warn("Failed to set #{@i} to #{data}")
-              @redis.rpush(CONFIG[:queue], data[1])
-              sleep 0.1
-            end
+          if data = @redis.brpop(CONFIG[:queue], :timeout => 1)
+            submit_job(data[1])
+          elsif data = @redis.spop(CONFIG[:failed])
+            submit_job(data)
           end
-          until @q.size + @outstanding < CONFIG[:max_pending] or !@should_continue do
+          until !@keys.empty? or !@should_continue do
             sleep 0.1
           end
         end
       end
     end
 
+    def submit_job(tuple)
+      i = @keys.first
+      @keys.delete(i)
+      @redis.hsetnx(CONFIG[:processing], i, tuple)
+      @q << [i, tuple]
+    end
+
     on_ack do |msg_id|
-      @redis.hdel(CONFIG[:processing], msg_id.to_s)
-      @outstanding -= 1
-      log.debug("Redis ack received and dismissed #{msg_id}")
+      @redis.hdel(CONFIG[:processing], msg_id)
+      log.info("Redis ack received and dismissed #{msg_id}")
+      @keys << msg_id
     end
 
     on_fail do |msg_id|
-      if data = @redis.hget(CONFIG[:processing], msg_id.to_s)
+      if data = @redis.hget(CONFIG[:processing], msg_id) > 0
+        @redis.hdel(CONFIG[:processing], msg_id)
         log.warn("Failed to process #{msg_id}: #{data}")
-        @redis.rpush(CONFIG[:queue], data)
+        if CONFIG[:replay_failed] and CONFIG.key?(:failed)
+          @redis.sadd(CONFIG[:failed], data)
+        end
       end
 
-      @redis.hdel(CONFIG[:processing], msg_id.to_s)
-      @outstanding -= 1
+      @keys << msg_id
     end
 
     on_close do

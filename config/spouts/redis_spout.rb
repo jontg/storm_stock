@@ -4,6 +4,8 @@ module RedisSpout
       :port => 6379,
       :queue => 'spout_queue',
       :processing => 'spout_processing',
-      :max_pending => 100,
+      :replay_failed => true,
+      :failed => 'spout_failed',
+      :max_pending => 40,
   }
 end

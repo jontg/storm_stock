@@ -8,23 +8,17 @@ module NewsAggregator
     output_fields :tick
 
     def initialize
-      config = Abstract::TimeConfig.new(10)
-      super(config)
+      super(Abstract::TimeConfig.new(10))
     end
 
-    on_send(:reliable => true, :ack => true) do
-      @q.pop if @q.size > 0
-    end
-
-    on_ack do |msg_id|
-      log.info("Ack'd message #{msg_id}")
-    end
+    on_send(:reliable => true, :ack => true) { @q.pop if @q.size > 0 }
+    on_ack { |msg_id| log.info("Ack'd message #{msg_id}") }
   end
 
   class ExperimentalTopology < RedStorm::DSL::Topology
     spout RedisSpout::Spout
 
-    bolt EchoBolt, :id => 'RedisEchoBolt', :parallelism => 10 do
+    bolt EchoBolt, :id => 'RedisEchoBolt', :parallelism => 40 do
       source RedisSpout::Spout, :shuffle
     end
 
@@ -36,7 +30,7 @@ module NewsAggregator
 
     configure do |env|
       debug false
-      max_task_parallelism 10
+      max_task_parallelism 40
     end
   end
 end
