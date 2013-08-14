@@ -27,12 +27,7 @@ module RedisPubSubSpout
         @patterns.each do |pattern|
           Redis.new(:host => @host, :port => @port).psubscribe(pattern) do |on|
             on.pmessage do |pat, ch, message|
-              if self.class.reliable?
-                @q << [@i.to_s, {:pattern => pat, :message => message}, ch]
-                @i += 1
-              else
-                @q << [{:pattern => pat, :message => message}, ch]
-              end
+              publish_tuple(ch, {:pattern => pat, :message => message})
             end
           end
         end
@@ -43,15 +38,19 @@ module RedisPubSubSpout
           Thread.current.abort_on_exception = true
           Redis.new(:host => @host, :port => @port).subscribe(channel) do |on|
             on.message do |ch, message|
-              if self.class.reliable?
-                @q << [@i.to_s, {:message => message}, ch]
-                @i += 1
-              else
-                @q << [{:message => message}, ch]
-              end
+              publish_tuple(ch, {:message => message})
             end
           end
         end
+      end
+    end
+
+    def publish_tuple(channel, message)
+      if self.class.reliable?
+        @q << [@i.to_s, message, channel]
+        @i += 1
+      else
+        @q << [message, channel]
       end
     end
   end
