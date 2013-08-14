@@ -5,7 +5,7 @@ require 'config/spouts/redis_pub_sub_spout'
 
 module RedisPubSubSpout
   class Spout < RedStorm::DSL::Spout
-    output_fields :tuple
+    output_fields :tuple, :channel
     on_send(:reliable => true, :ack => true) { @q.pop unless @q.empty? }
 
     def initialize()
@@ -28,10 +28,10 @@ module RedisPubSubSpout
           Redis.new(:host => @host, :port => @port).psubscribe(pattern) do |on|
             on.pmessage do |pat, ch, message|
               if self.class.reliable?
-                @q << [@i.to_s, ch, {:pattern => pat, :message => message}]
+                @q << [@i.to_s, {:pattern => pat, :message => message}, ch]
                 @i += 1
               else
-                @q << [ch, {:pattern => pat, :message => message}]
+                @q << [{:pattern => pat, :message => message}, ch]
               end
             end
           end
@@ -44,10 +44,10 @@ module RedisPubSubSpout
           Redis.new(:host => @host, :port => @port).subscribe(channel) do |on|
             on.message do |ch, message|
               if self.class.reliable?
-                @q << [@i.to_s, ch, {:message => message}]
+                @q << [@i.to_s, {:message => message}, ch]
                 @i += 1
               else
-                @q << [ch, {:message => message}]
+                @q << [{:message => message}, ch]
               end
             end
           end
