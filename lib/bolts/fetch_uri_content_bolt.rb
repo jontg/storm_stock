@@ -9,7 +9,6 @@ class FetchUriContentBolt < RedStorm::DSL::Bolt
       tuple[0][:header] = res.header
       tuple[0][:body] = res.body
       puts res.body
-      sleep 10
       log.info(tuple[0])
     end
 

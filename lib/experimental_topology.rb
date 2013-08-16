@@ -19,13 +19,13 @@ module NewsAggregator
   class ExperimentalTopology < RedStorm::DSL::Topology
     spout RedisSpout::Spout, :id => 'Queue'
 
-    bolt EchoBolt, :id => 'RedisEchoBolt', :parallelism => 40 do
+    bolt EchoBolt, :id => 'RedisEchoBolt', :parallelism => 4 do
       source 'Queue', :shuffle
     end
 
     spout RedisPubSubSpout::Spout, :id => 'PubSub'
 
-    bolt EchoBolt, :id => 'RedisPubSubEchoBolt', :parallelism => 10 do
+    bolt EchoBolt, :id => 'RedisPubSubEchoBolt', :parallelism => 4 do
       source 'PubSub', :shuffle
     end
 
