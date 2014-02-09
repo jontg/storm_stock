@@ -1,11 +1,13 @@
 source "https://rubygems.org"
 gem "redstorm", "~> 0.6.6"
 
-group :hello_world do
-  gem "redis"
+gem "redis", :group => [:hello_world, :rss]
+gem "active_support", :group => [:hello_world, :rss, :stocks]
+
+group :stocks do
+  gem "yahoofinance"
 end
 
 group :rss do
   #gem "pauldix-feedzirra"
-  gem "redis"
 end
