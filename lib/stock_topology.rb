@@ -7,18 +7,18 @@ require 'spouts/bitminer_spout'
 module NewsAggregator
   class StockTopology < RedStorm::DSL::Topology
     spout StockSpout::Spout, :id => 'StockSymbol' do
-      set "topology.sleep.spout.wait.strategy.time.ms", 200
-      set "topology.max.spout.pending", 30
+      set 'topology.sleep.spout.wait.strategy.time.ms', 200
+      set 'topology.max.spout.pending', 30
     end
 
     spout BtcGuildSpout::Spout, :id => 'BTCGuild' do
-      set "topology.sleep.spout.wait.strategy.time.ms", 200
-      set "topology.max.spout.pending", 30
+      set 'topology.sleep.spout.wait.strategy.time.ms', 200
+      set 'topology.max.spout.pending', 30
     end
 
     spout BitminerSpout::Spout, :id => 'Bitminer' do
-      set "topology.sleep.spout.wait.strategy.time.ms", 200
-      set "topology.max.spout.pending", 30
+      set 'topology.sleep.spout.wait.strategy.time.ms', 200
+      set 'topology.max.spout.pending', 30
     end
 
     bolt EchoBolt, :id => 'EchoBolt', :parallelism => 2 do
