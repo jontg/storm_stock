@@ -1,5 +1,6 @@
 require 'red_storm'
 require 'bolts/echo_bolt'
+require 'bolts/stock_indexer_bolt'
 require 'spouts/stock_spout'
 require 'spouts/btc_guild_spout'
 require 'spouts/bitminer_spout'
@@ -25,6 +26,10 @@ module NewsAggregator
       source 'StockSymbol', :shuffle
       source 'BTCGuild', :shuffle
       source 'Bitminer', :shuffle
+    end
+
+    bolt StockIndexerBolt, :id => 'IndexerBolt' do
+      source 'StockSymbol', :shuffle
     end
 
     #spout CustomTimeSpout

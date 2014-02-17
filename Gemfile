@@ -7,6 +7,7 @@ gem "rest-client", :group => [:hello_world, :rss, :stocks]
 
 group :stocks do
   gem "yahoofinance"
+  gem "elasticsearch"
 end
 
 group :rss do
