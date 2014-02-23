@@ -24,7 +24,7 @@ module NewsAggregator
       set 'topology.max.spout.pending', 1
     end
 
-    bolt StockIndexerBolt, :id => 'IndexerBolt' do
+    bolt StockIndexerBolt::Bolt, :id => 'IndexerBolt' do
       source 'StockSymbol', :shuffle
       source 'CampBX', :shuffle
       source 'Vircurex', :shuffle
