@@ -19,13 +19,24 @@ module StockSpout
         Thread.current.abort_on_exception = true
 
         while @should_continue do
-          stocks_to_check = CONFIG[:symbols].select {|sym| not @last_fetched.has_key?(sym) or @last_fetched[sym] < 5.minutes.ago}
+          stocks_to_check = CONFIG[:symbols].select {|sym| not @last_fetched.has_key?(sym) or @last_fetched[sym] < 1.minutes.ago}
           unless stocks_to_check.empty?
             log.info("Stocks to check: " + stocks_to_check.to_s)
             stocks_to_check.each {|qt| @last_fetched[qt] = Time.now}
-            YahooFinance::get_realtime_quotes(stocks_to_check) do |qt|
-              @q << [qt.symbol, qt]
-            end
+              YahooFinance::get_standard_quotes(stocks_to_check) do |qt|
+                log.info(qt.inspect)
+                if qt.valid?
+                  @q << [qt.symbol, {
+                       :name       => qt.symbol,
+                       :last_trade => qt.lastTrade,
+                       :best_bid   => qt.bid,
+                       :best_ask   => qt.ask,
+                       :volume     => qt.averageDailyVolume,
+                       :src_name   => "Yahoo",
+                       :src        => qt} ]
+                  log.info("DONE: " + qt.inspect)
+                end
+              end
           end
           sleep(1)
         end
@@ -39,7 +50,7 @@ module StockSpout
 
     on_fail do |msg_id|
       log.warn("Failed to process #{msg_id}: #{data}")
-      @last_fetched[qt] = 5.minutes.ago
+      @last_fetched[qt] = 1.minutes.ago
     end
 
     on_close do

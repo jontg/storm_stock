@@ -1,17 +1,23 @@
 require 'red_storm'
 require 'rest-client'
 require 'active_support/time'
-require 'config/spouts/btc_guild_spout'
 
-module BtcGuildSpout
+module VircurexSpout
   class Spout < RedStorm::DSL::Spout
     output_fields :tuple
 
     on_send(:reliable => true, :ack => true) do
-      if @last_fetched < 5.minutes.ago
-        response = JSON.load RestClient.get 'https://www.btcguild.com/api.php?api_key='+CONFIG[:api_key]
+      if @last_fetched < 5.seconds.ago
+        response = JSON.load RestClient.get 'https://api.vircurex.com/api/get_info_for_currency.json'
         @last_fetched = Time.now
-        [Time.now, response]
+        ["VBTC", {
+         :name       => "VircBTC",
+         :last_trade => response["BTC"]["USD"]["last_trade"],
+         :best_bid   => response["BTC"]["USD"]["highest_bid"],
+         :best_ask   => response["BTC"]["USD"]["lowest_ask"],
+         :volume     => response["BTC"]["USD"]["volume"],
+         :src_name   => "Vircurex",
+         :src        => response} ]
       end
     end
 

@@ -1,17 +1,22 @@
 require 'red_storm'
 require 'rest-client'
 require 'active_support/time'
-require 'config/spouts/btc_guild_spout'
 
-module BtcGuildSpout
+module CampBXSpout
   class Spout < RedStorm::DSL::Spout
     output_fields :tuple
 
     on_send(:reliable => true, :ack => true) do
-      if @last_fetched < 5.minutes.ago
-        response = JSON.load RestClient.get 'https://www.btcguild.com/api.php?api_key='+CONFIG[:api_key]
+      if @last_fetched < 5.seconds.ago
+        response = JSON.load RestClient.get 'http://CampBX.com/api/xticker.php'
         @last_fetched = Time.now
-        [Time.now, response]
+        ["CBTC", {
+         :name       => "CampBTC",
+         :last_trade => response["Last Trade"],
+         :best_bid   => response["Best Bid"],
+         :best_ask   => response["Best Ask"],
+         :src_name   => "CampBX",
+         :src        => response} ]
       end
     end
 

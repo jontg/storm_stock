@@ -1,4 +1,4 @@
-module StockIndexerSpout
+module StockIndexerBolt
   CONFIG = {
       :hosts => ['search.ulfhedinn.net:9200'],
   }

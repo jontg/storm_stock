@@ -4,6 +4,8 @@ require 'bolts/stock_indexer_bolt'
 require 'spouts/stock_spout'
 require 'spouts/btc_guild_spout'
 require 'spouts/bitminer_spout'
+require 'spouts/campbx_spout'
+require 'spouts/vircurex_spout'
 
 module NewsAggregator
   class StockTopology < RedStorm::DSL::Topology
@@ -11,6 +13,24 @@ module NewsAggregator
       set 'topology.sleep.spout.wait.strategy.time.ms', 200
       set 'topology.max.spout.pending', 30
     end
+
+    spout CampBXSpout::Spout, :id => 'CampBX' do
+      set 'topology.sleep.spout.wait.strategy.time.ms', 500
+      set 'topology.max.spout.pending', 1
+    end
+
+    spout VircurexSpout::Spout, :id => 'Vircurex' do
+      set 'topology.sleep.spout.wait.strategy.time.ms', 200
+      set 'topology.max.spout.pending', 1
+    end
+
+    bolt StockIndexerBolt, :id => 'IndexerBolt' do
+      source 'StockSymbol', :shuffle
+      source 'CampBX', :shuffle
+      source 'Vircurex', :shuffle
+    end
+
+
 
     spout BtcGuildSpout::Spout, :id => 'BTCGuild' do
       set 'topology.sleep.spout.wait.strategy.time.ms', 200
@@ -26,10 +46,6 @@ module NewsAggregator
       source 'StockSymbol', :shuffle
       source 'BTCGuild', :shuffle
       source 'Bitminer', :shuffle
-    end
-
-    bolt StockIndexerBolt, :id => 'IndexerBolt' do
-      source 'StockSymbol', :shuffle
     end
 
     #spout CustomTimeSpout
